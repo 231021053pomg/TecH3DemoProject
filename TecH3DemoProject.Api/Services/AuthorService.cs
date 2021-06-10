@@ -6,6 +6,17 @@ using TecH3DemoProject.Api.Repositories;
 
 namespace TecH3DemoProject.Api.Services
 {
+    // interface moved into service file, to avoid 2 files per service (and repository)
+    // convention is to have interfaces and DTO's related to this file gathered in one location
+    public interface IAuthorService
+    {
+        Task<List<Author>> GetAllAuthors();
+        Task<Author> GetAuthorById(int id);
+        Task<Author> Create(Author author);
+        Task<Author> Update(int id, Author author);
+        Task<Author> Delete(int id);
+    }
+
     // Service tager sig af at hente/send data til/fra data-kilder, som f.eks. lokal database eller eksterne API
     // lokal database tilgåes igennem et repository interface.
     public class AuthorService : IAuthorService

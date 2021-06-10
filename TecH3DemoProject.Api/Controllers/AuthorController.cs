@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -7,6 +8,9 @@ using TecH3DemoProject.Api.Services;
 
 namespace TecH3DemoProject.Api.Controllers
 {
+    [Authorize(Roles = UserRoles.Admin)]
+    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+
     // Controller tager sig af HttpRequests og returnerer data til client...
     [ApiController]
     [Route("api/author")]

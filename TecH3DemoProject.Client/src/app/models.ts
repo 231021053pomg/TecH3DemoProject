@@ -12,3 +12,9 @@ export interface Book {
   authorId: number;
   pages: number;
 }
+
+
+export interface User{
+  email: string;
+  password:string;
+}

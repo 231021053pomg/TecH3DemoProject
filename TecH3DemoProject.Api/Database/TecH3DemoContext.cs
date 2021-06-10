@@ -11,5 +11,6 @@ namespace TecH3DemoProject.Api.Database
 
         public DbSet<Author> Author { get; set; }
         public DbSet<Book> Book { get; set; }
+        public DbSet<Login> Login { get; set; }
     }
 }

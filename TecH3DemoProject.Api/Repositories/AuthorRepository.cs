@@ -8,6 +8,17 @@ using TecH3DemoProject.Api.Domain;
 
 namespace TecH3DemoProject.Api.Repositories
 {
+    public interface IAuthorRepository
+    {
+        Task<List<Author>> GetAll();
+        Task<Author> GetById(int id);
+        Task<Author> Create(Author author);
+        Task<Author> Update(int id, Author author);
+        Task<Author> Delete(int id);
+        //Task<Author> Delete(Author author);
+    }
+
+
     // Repository er database arbejds-hesten. Det er kun igennem denne klasse Author data hentes/sendes
     public class AuthorRepository : IAuthorRepository
     {
