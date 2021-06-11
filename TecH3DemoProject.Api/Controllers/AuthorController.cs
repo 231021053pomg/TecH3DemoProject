@@ -2,14 +2,14 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TecH3DemoProject.Api.Domain;
 using TecH3DemoProject.Api.Services;
 
 namespace TecH3DemoProject.Api.Controllers
 {
-    [Authorize(Roles = UserRoles.Admin)]
-    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    //[Authorize(Roles = UserRoles.Admin)]
 
     // Controller tager sig af HttpRequests og returnerer data til client...
     [ApiController]
@@ -39,7 +39,7 @@ namespace TecH3DemoProject.Api.Controllers
                     // something has gone wrong serverside, return code 500
                     return Problem("Unexpected null returned from service");
                 }
-                else if (authors.Count == 0)
+                else if ((authors as List<Author>).Count == 0)
                 {
                     // no data exists, but everything is still ok, return code 204
                     return NoContent();
@@ -77,6 +77,7 @@ namespace TecH3DemoProject.Api.Controllers
         }
 
         // POST api/author
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -99,6 +100,7 @@ namespace TecH3DemoProject.Api.Controllers
         }
 
         // PUT api/author/5
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -121,6 +123,7 @@ namespace TecH3DemoProject.Api.Controllers
         }
 
         // DELETE api/author/5
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

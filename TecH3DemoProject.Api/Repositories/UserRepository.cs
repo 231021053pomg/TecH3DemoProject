@@ -32,6 +32,8 @@ namespace TecH3DemoProject.Api.Repositories
         {
             return await _context.Login
                 .Where(l => l.deletedAt == null)
+                .Include(l => l.Role)
+                .Include(l => l.Address.Where(a => a.deletedAt == null))
                 .ToListAsync();
         }
 
@@ -39,6 +41,8 @@ namespace TecH3DemoProject.Api.Repositories
         {
             return await _context.Login
                 .Where(l => l.deletedAt == null)
+                .Include(l => l.Role)
+                .Include(l => l.Address.Where(a => a.deletedAt == null))
                 .FirstOrDefaultAsync(l => l.Id == id);
         }
 
@@ -46,6 +50,7 @@ namespace TecH3DemoProject.Api.Repositories
         {
             return await _context.Login
                 .Where(l => l.deletedAt == null)
+                .Include(l => l.Role)
                 .FirstOrDefaultAsync(l => l.Email == email && l.Password == password);
         }
 
@@ -56,15 +61,15 @@ namespace TecH3DemoProject.Api.Repositories
             await _context.SaveChangesAsync();
             return login;
         }
-        
+
         public async Task<Login> UpdateLogin(int id, Login login)
         {
             var editLogin = await GetLoginById(id);
-            if(editLogin != null)
+            if (editLogin != null)
             {
                 editLogin.updatedAt = DateTime.Now;
                 editLogin.Email = login.Email;
-                if(login.Password != "")
+                if (login.Password != "")
                 {
                     editLogin.Password = login.Password;
                 }
@@ -75,7 +80,7 @@ namespace TecH3DemoProject.Api.Repositories
         public async Task<Login> DeleteLogin(int id)
         {
             var deleteLogin = await GetLoginById(id);
-            if(deleteLogin != null)
+            if (deleteLogin != null)
             {
                 deleteLogin.deletedAt = DateTime.Now;
                 await _context.SaveChangesAsync();

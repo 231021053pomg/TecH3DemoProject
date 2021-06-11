@@ -10,7 +10,7 @@ namespace TecH3DemoProject.Api.Services
     // convention is to have interfaces and DTO's related to this file gathered in one location
     public interface IAuthorService
     {
-        Task<List<Author>> GetAllAuthors();
+        Task<IEnumerable<Author>> GetAllAuthors();
         Task<Author> GetAuthorById(int id);
         Task<Author> Create(Author author);
         Task<Author> Update(int id, Author author);
@@ -28,7 +28,7 @@ namespace TecH3DemoProject.Api.Services
             _authorRepository = authorRepository;
         }
 
-        public async Task<List<Author>> GetAllAuthors()
+        public async Task<IEnumerable<Author>> GetAllAuthors()
         {
             var authors = await _authorRepository.GetAll();
             return authors;

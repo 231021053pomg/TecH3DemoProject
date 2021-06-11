@@ -83,6 +83,7 @@ namespace TecH3DemoProject.Api
 
             services.AddScoped<IAuthorRepository, AuthorRepository>();
             services.AddScoped<IAuthorService, AuthorService>();
+            services.AddScoped<IUserRepository, UserRepository>();
 
             services.AddSwaggerGen(c =>
             {

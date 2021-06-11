@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
+using TecH3DemoProject.Api.Domain;
 
 namespace TecH3DemoProject.Api.Infrastructure
 {
@@ -69,7 +70,6 @@ namespace TecH3DemoProject.Api.Infrastructure
             var refreshToken = new RefreshToken
             {
                 UserName = username,
-                LoginId = 1,
                 TokenString = GenerateRefreshTokenString(),
                 ExpireAt = now.AddMinutes(_jwtTokenConfig.RefreshTokenExpiration)
             };

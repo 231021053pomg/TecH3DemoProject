@@ -1,13 +1,12 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using TecH3DemoProject.Api.Infrastructure;
 using TecH3DemoProject.Api.Services;
 
@@ -17,52 +16,61 @@ namespace TecH3DemoProject.Api.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private readonly ILogger<AccountController> _logger;
+        //private readonly ILogger<AccountController> _logger;
         private readonly IUserService _userService;
         private readonly IJwtAuthManager _jwtAuthManager;
 
-        public AccountController(ILogger<AccountController> logger, IUserService userService, IJwtAuthManager jwtAuthManager)
+        public AccountController(/*ILogger<AccountController> logger, */IUserService userService, IJwtAuthManager jwtAuthManager)
         {
-            _logger = logger;
+            //_logger = logger;
             _userService = userService;
             _jwtAuthManager = jwtAuthManager;
         }
-
+        //[Authorize(Roles = UserRoles.Admin)]
+        //[Authorize(Roles = UserRoles.Customer)]
         [AllowAnonymous]
         [HttpPost("login")]
-        public ActionResult Login([FromBody] LoginRequest request)
+        public async Task<ActionResult> Login([FromBody] LoginRequest request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest();
             }
 
-            if (!_userService.IsValidUserCredentials(request.UserName, request.Password))
+            var login = await _userService.GetUserByEmailAndPassword(request.UserName, request.Password);
+            if (login == null)
             {
                 return Unauthorized();
             }
 
-            var role = _userService.GetUserRole(request.UserName);
+            //if (!_userService.IsValidUserCredentials(request.UserName, request.Password))
+            //{
+            //    return Unauthorized();
+            //}
+
+            //var role = _userService.GetUserRole(request.UserName);
             var claims = new[]
             {
-                new Claim(ClaimTypes.Name, request.UserName),
-                new Claim(ClaimTypes.Role, role)
+                new Claim(ClaimTypes.Name, login.Email),
+                new Claim(ClaimTypes.NameIdentifier, login.Id.ToString()),
+                new Claim(ClaimTypes.Role, login.Role.Name)
             };
 
-            var jwtResult = _jwtAuthManager.GenerateTokens(request.UserName, claims, DateTime.Now);
-            _logger.LogInformation($"User [{request.UserName}] logged in the system.");
+            var jwtResult = _jwtAuthManager.GenerateTokens(login.Email, claims, DateTime.Now);
+            //_logger.LogInformation($"User [{request.UserName}] logged in the system.");
             return Ok(new LoginResult
             {
-                UserName = request.UserName,
-                Role = role,
+                UserName = login.Email,
+                Role = login.Role.Name,
                 AccessToken = jwtResult.AccessToken,
                 RefreshToken = jwtResult.RefreshToken.TokenString
             });
         }
 
+
         [HttpGet("user")]
         [Authorize]
-        public ActionResult GetCurrentUser()
+        public  ActionResult GetCurrentUser()
         {
             return Ok(new LoginResult
             {
@@ -71,6 +79,7 @@ namespace TecH3DemoProject.Api.Controllers
                 OriginalUserName = User.FindFirst("OriginalUserName")?.Value
             });
         }
+
 
         [HttpPost("logout")]
         [Authorize]
@@ -81,9 +90,10 @@ namespace TecH3DemoProject.Api.Controllers
 
             var userName = User.Identity?.Name;
             _jwtAuthManager.RemoveRefreshTokenByUserName(userName);
-            _logger.LogInformation($"User [{userName}] logged out the system.");
+            //_logger.LogInformation($"User [{userName}] logged out the system.");
             return Ok();
         }
+
 
         [HttpPost("refresh-token")]
         [Authorize]
@@ -92,7 +102,7 @@ namespace TecH3DemoProject.Api.Controllers
             try
             {
                 var userName = User.Identity?.Name;
-                _logger.LogInformation($"User [{userName}] is trying to refresh JWT token.");
+                //_logger.LogInformation($"User [{userName}] is trying to refresh JWT token.");
 
                 if (string.IsNullOrWhiteSpace(request.RefreshToken))
                 {
@@ -101,7 +111,7 @@ namespace TecH3DemoProject.Api.Controllers
 
                 var accessToken = await HttpContext.GetTokenAsync("Bearer", "access_token");
                 var jwtResult = _jwtAuthManager.Refresh(request.RefreshToken, accessToken, DateTime.Now);
-                _logger.LogInformation($"User [{userName}] has refreshed JWT token.");
+                //_logger.LogInformation($"User [{userName}] has refreshed JWT token.");
                 return Ok(new LoginResult
                 {
                     UserName = userName,
@@ -116,73 +126,75 @@ namespace TecH3DemoProject.Api.Controllers
             }
         }
 
-        [HttpPost("impersonation")]
-        [Authorize(Roles = UserRoles.Admin)]
-        public ActionResult Impersonate([FromBody] ImpersonationRequest request)
-        {
-            var userName = User.Identity?.Name;
-            _logger.LogInformation($"User [{userName}] is trying to impersonate [{request.UserName}].");
 
-            var impersonatedRole = _userService.GetUserRole(request.UserName);
-            if (string.IsNullOrWhiteSpace(impersonatedRole))
-            {
-                _logger.LogInformation($"User [{userName}] failed to impersonate [{request.UserName}] due to the target user not found.");
-                return BadRequest($"The target user [{request.UserName}] is not found.");
-            }
-            if (impersonatedRole == UserRoles.Admin)
-            {
-                _logger.LogInformation($"User [{userName}] is not allowed to impersonate another Admin.");
-                return BadRequest("This action is not supported.");
-            }
+        //[HttpPost("impersonation")]
 
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.Name,request.UserName),
-                new Claim(ClaimTypes.Role, impersonatedRole),
-                new Claim("OriginalUserName", userName ?? string.Empty)
-            };
+        //public ActionResult Impersonate([FromBody] ImpersonationRequest request)
+        //{
+        //    var userName = User.Identity?.Name;
+        //    //_logger.LogInformation($"User [{userName}] is trying to impersonate [{request.UserName}].");
 
-            var jwtResult = _jwtAuthManager.GenerateTokens(request.UserName, claims, DateTime.Now);
-            _logger.LogInformation($"User [{request.UserName}] is impersonating [{request.UserName}] in the system.");
-            return Ok(new LoginResult
-            {
-                UserName = request.UserName,
-                Role = impersonatedRole,
-                OriginalUserName = userName,
-                AccessToken = jwtResult.AccessToken,
-                RefreshToken = jwtResult.RefreshToken.TokenString
-            });
-        }
+        //    var impersonatedRole = _userService.GetUserRole(request.UserName);
+        //    if (string.IsNullOrWhiteSpace(impersonatedRole))
+        //    {
+        //        //_logger.LogInformation($"User [{userName}] failed to impersonate [{request.UserName}] due to the target user not found.");
+        //        return BadRequest($"The target user [{request.UserName}] is not found.");
+        //    }
+        //    if (impersonatedRole == UserRoles.Admin)
+        //    {
+        //        //_logger.LogInformation($"User [{userName}] is not allowed to impersonate another Admin.");
+        //        return BadRequest("This action is not supported.");
+        //    }
 
-        [HttpPost("stop-impersonation")]
-        public ActionResult StopImpersonation()
-        {
-            var userName = User.Identity?.Name;
-            var originalUserName = User.FindFirst("OriginalUserName")?.Value;
-            if (string.IsNullOrWhiteSpace(originalUserName))
-            {
-                return BadRequest("You are not impersonating anyone.");
-            }
-            _logger.LogInformation($"User [{originalUserName}] is trying to stop impersonate [{userName}].");
+        //    var claims = new[]
+        //    {
+        //        new Claim(ClaimTypes.Name,request.UserName),
+        //        new Claim(ClaimTypes.Role, impersonatedRole),
+        //        new Claim("OriginalUserName", userName ?? string.Empty)
+        //    };
 
-            var role = _userService.GetUserRole(originalUserName);
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.Name,originalUserName),
-                new Claim(ClaimTypes.Role, role)
-            };
+        //    var jwtResult = _jwtAuthManager.GenerateTokens(request.UserName, claims, DateTime.Now);
+        //    //_logger.LogInformation($"User [{request.UserName}] is impersonating [{request.UserName}] in the system.");
+        //    return Ok(new LoginResult
+        //    {
+        //        UserName = request.UserName,
+        //        Role = impersonatedRole,
+        //        OriginalUserName = userName,
+        //        AccessToken = jwtResult.AccessToken,
+        //        RefreshToken = jwtResult.RefreshToken.TokenString
+        //    });
+        //}
 
-            var jwtResult = _jwtAuthManager.GenerateTokens(originalUserName, claims, DateTime.Now);
-            _logger.LogInformation($"User [{originalUserName}] has stopped impersonation.");
-            return Ok(new LoginResult
-            {
-                UserName = originalUserName,
-                Role = role,
-                OriginalUserName = null,
-                AccessToken = jwtResult.AccessToken,
-                RefreshToken = jwtResult.RefreshToken.TokenString
-            });
-        }
+
+        //[HttpPost("stop-impersonation")]
+        //public ActionResult StopImpersonation()
+        //{
+        //    var userName = User.Identity?.Name;
+        //    var originalUserName = User.FindFirst("OriginalUserName")?.Value;
+        //    if (string.IsNullOrWhiteSpace(originalUserName))
+        //    {
+        //        return BadRequest("You are not impersonating anyone.");
+        //    }
+        //    //_logger.LogInformation($"User [{originalUserName}] is trying to stop impersonate [{userName}].");
+
+        //    var role = _userService.GetUserRole(originalUserName);
+        //    var claims = new[]
+        //    {
+        //        new Claim(ClaimTypes.Name,originalUserName),
+        //        new Claim(ClaimTypes.Role, role)
+        //    };
+
+        //    var jwtResult = _jwtAuthManager.GenerateTokens(originalUserName, claims, DateTime.Now);
+        //    //_logger.LogInformation($"User [{originalUserName}] has stopped impersonation.");
+        //    return Ok(new LoginResult
+        //    {
+        //        UserName = originalUserName,
+        //        Role = role,
+        //        OriginalUserName = null,
+        //        AccessToken = jwtResult.AccessToken,
+        //        RefreshToken = jwtResult.RefreshToken.TokenString
+        //    });
+        //}
     }
 
     // DTO's
@@ -221,9 +233,9 @@ namespace TecH3DemoProject.Api.Controllers
         public string RefreshToken { get; set; }
     }
 
-    public class ImpersonationRequest
-    {
-        [JsonPropertyName("username")]
-        public string UserName { get; set; }
-    }
+    //public class ImpersonationRequest
+    //{
+    //    [JsonPropertyName("username")]
+    //    public string UserName { get; set; }
+    //}
 }

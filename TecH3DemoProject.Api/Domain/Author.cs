@@ -25,7 +25,7 @@ namespace TecH3DemoProject.Api.Domain
         [StringLength(32, ErrorMessage = "Lastname length can't be more than 32 chars")]
         public string LastName { get; set; }
 
-        public List<Book> Books { get; set; }
+        public IEnumerable<Book> Books { get; set; }
 
     }
 }
